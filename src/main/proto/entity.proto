@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package model;
+
+option java_package="com.shanir.exercise.protobuf.model";
+option java_outer_classname = "EntityProto";
+
+message Entity {
+  repeated string topics = 1;
+  string payload = 2;
+  int64 offset = 3;
+}
+
+message Entities {
+  repeated Entity entity = 1;
+}

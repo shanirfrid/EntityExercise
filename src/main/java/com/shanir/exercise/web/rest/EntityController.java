@@ -21,7 +21,7 @@ public class EntityController {
     @PostMapping("/fetchEntities")
     public ResponseEntity<EntityProto.Entities> getEntitiesByEntityFilter(@RequestBody EntityFilter entityFilter) {
         return new ResponseEntity<>(entityService.getEntitiesByEntityFilter(entityFilter),
-                HttpStatus.CREATED);
+                HttpStatus.OK);
     }
 
     @PostMapping("/addEntity")

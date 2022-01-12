@@ -1,35 +1,33 @@
 package com.shanir.exercise.integration;
 
-import com.google.gson.Gson;
+import com.shanir.exercise.db.EntityRepository;
 import com.shanir.exercise.model.Entity;
 import com.shanir.exercise.model.EntityFilter;
 import com.shanir.exercise.model.EntityProto;
 import com.shanir.exercise.service.EntityService;
 import com.shanir.exercise.utils.Conversions;
+import com.shanir.exercise.utils.Pagination;
+import com.shanir.exercise.web.rest.EntityController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.RequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebFluxTest(EntityController.class)
+@Import({Conversions.class, Pagination.class})
 class EntityControllerTest {
 
-    @Autowired
-    private MockMvc mvc;
+    @Autowired WebTestClient webTestClient;
+    @Autowired Conversions conversions;
+    @Autowired  Pagination pagination;
 
     @MockBean
     EntityService entityService;
@@ -39,7 +37,8 @@ class EntityControllerTest {
     @Test
     void getEntitiesByEntityFilter() throws Exception {
         Collection<String> topics = Arrays.asList("A","D");
-        long offset = 8;
+        long count = 4, offset = 8;
+        int limit = 2, page = 0;
 
         List<Entity> entitiesToAdd = Arrays.asList(
                 new Entity(12,"25",Arrays.asList("A","B")),
@@ -53,26 +52,22 @@ class EntityControllerTest {
                 new Entity(12,"25",Arrays.asList("A","B"))
         );
 
-        for (Entity entity:entitiesToAdd) {
-            this.entityService.saveEntity(entity);
-        }
-
+        entitiesToAdd.forEach(entity -> this.entityService.saveEntity(entity));
         EntityFilter entityFilter = new EntityFilter(offset,topics);
 
-        EntityProto.Entities entitiesMockResult = EntityProto.Entities.newBuilder()
-                .addAllEntity(Conversions.entityListToProtoEntityList(expectedEntities)).build();
+        Mono<EntityProto.Entities> entitiesMockResult = Mono.just(
+                conversions.protoListToProtoEntities(expectedEntities,
+                        pagination.getPrevious(page),pagination.getNext(count,page,limit),
+                        pagination.getLast(count,limit)
+                        ));
 
-        RequestBuilder request = MockMvcRequestBuilders
-                .post(URL)
-                .content(new Gson().toJson(entityFilter))
-                .contentType(MediaType.APPLICATION_JSON);
-
-        when(entityService.getEntitiesByEntityFilter(entityFilter))
+        when(entityService.getEntitiesByEntityFilter(entityFilter, page, limit))
                 .thenReturn(entitiesMockResult);
 
-        MvcResult result = mvc.perform(request)
-                .andExpect(status().isOk())
-                .andExpect(content()
-                 .contentType("application/x-protobuf;charset=UTF-8")).andReturn();
+        webTestClient.post()
+                .uri(String.format(URL + "/?page=%d&limit=%d", page, limit))
+                .bodyValue(entityFilter)
+                .exchange()
+                .expectStatus().isOk();
     }
 }

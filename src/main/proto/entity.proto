@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package model;
 
-option java_package="com.shanir.exercise.protobuf.model";
+option java_package="com.shanir.exercise.model";
 option java_outer_classname = "EntityProto";
 
 message Entity {
@@ -12,5 +12,9 @@ message Entity {
 }
 
 message Entities {
-  repeated Entity entity = 1;
+  optional int64 previous = 1;
+  optional int64 next = 2;
+  optional int64 last = 3;
+  repeated Entity entity = 4;
 }
+

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 public class EntityController {
@@ -19,18 +20,15 @@ public class EntityController {
     }
 
     @PostMapping("/fetchEntities")
-    public ResponseEntity<EntityProto.Entities> getEntitiesByEntityFilter(@RequestBody EntityFilter entityFilter) {
-        return new ResponseEntity<>(entityService.getEntitiesByEntityFilter(entityFilter),
-                HttpStatus.OK);
+    public Mono<ResponseEntity<EntityProto.Entities>> getEntitiesByEntityFilter
+            (@RequestBody EntityFilter entityFilter, @RequestParam int page,
+             @RequestParam int limit) {
+        return this.entityService.getEntitiesByEntityFilter(entityFilter,page,limit)
+                .map(e -> new ResponseEntity<>(e,HttpStatus.OK));
     }
 
     @PostMapping("/addEntity")
-    public Entity addEntity(@RequestBody Entity entity){
+    public Mono<Entity> addEntity(@RequestBody Entity entity){
         return this.entityService.saveEntity(entity);
-    }
-
-    @GetMapping("/getEntities")
-    public EntityProto.Entities getEntities(){
-        return this.entityService.getEntities();
     }
 }
